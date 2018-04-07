@@ -1,6 +1,6 @@
 
 #include "base.h"
-
+//PIPELINE
 
 void TextDisplay(bmpInfoHeader *info, unsigned char *img)
 {

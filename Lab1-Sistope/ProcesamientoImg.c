@@ -2,30 +2,64 @@
 #include "base.h"
 //PIPELINE
 
-void TextDisplay(bmpInfoHeader *info, unsigned char *img)
+int clasificar(bmpInfoHeader *info, int *img, int umbral){
+   int i ;
+   int negro =0;
+   int blanco =0;
+      for (i=0;i<(info->height*info->width);i++){
+        if (img[i]==0){
+          blanco ++;
+        }
+        else{
+          negro ++;
+        }
+      }
+    int porcentaje = (negro*100)/(negro+blanco);
+    if (porcentaje>=umbral){
+         return 1;
+    }else{
+        return 0;
+    }
+}
+
+int* Binarizar(bmpInfoHeader *info, unsigned char *img, int umbral)
 {
   int x, y;
-  /* Reducimos la resolución vertical y horizontal para que la imagen entre en pantalla */
-  static const int reduccionX=6, reduccionY=4;
+  int* binarizado =(int*)malloc(sizeof(int)*info->height*info->width);
+  for (x=0; x<(info->width*info->height); x++)
+  {
+    if(img[x]>umbral){
+      binarizado[x]=1;
+    }
+    else{
+      binarizado[x]=0;
+    }
+  }
+  return binarizado;
+}
+unsigned char* ConversionEscalaGrises(bmpInfoHeader *info, unsigned char *img)
+{
+  int x, y,i,valor;
   /* Si la componente supera el umbral, el color se marcará como 1. */
-  static const int umbral=90;
-  /* Asignamos caracteres a los colores en pantalla */
-  static unsigned char colores[9]=" bgfrRGB";
+  unsigned char* grises =(unsigned char*)malloc(info->height*info->width);
   int r,g,b;
-
+  i=0;
   /* Dibujamos la imagen */
-  for (y=info->height; y>0; y-=reduccionY)
+  for (y=info->height; y>0; y--)
     {
-      for (x=0; x<info->width; x+=reduccionX)
+      for (x=0; x<info->width; x++)
     {
-      b=(img[3*(x+y*info->width)]>umbral);
-      g=(img[3*(x+y*info->width)+1]>umbral);
-      r=(img[3*(x+y*info->width)+2]>umbral);
-
-      printf("%c", colores[b+g*2+r*4]);
+      b=(img[3*(x+y*info->width)]);
+      g=(img[3*(x+y*info->width)+1]);
+      r=(img[3*(x+y*info->width)+2]);
+      valor= r*0.3+ g*0.59 + b*0.11;
+      grises[i]=valor;
+      //printf("grises[%d]=%d ",i,grises[i]);
+      i++;
     }
-      printf("\n");
+      //printf("\n");
     }
+    return grises;
 }
 
 unsigned char* LoadBMP(char *filename, bmpInfoHeader *bInfoHeader)
@@ -86,15 +120,22 @@ void DisplayInfo(bmpInfoHeader *info)
   printf("Colores en paleta: %d\n", info->colors);
   printf("Colores importantes: %d\n", info->imxtcolors);
 }
+void DisplayClasificacion(int*clasificaciones, int c)
+{
+  int i;
+  printf("   Imagen       |       Nearly Black\n");
+  for(i=0; i<c;i++){
+    if(clasificaciones[i]==1){
+      printf("imagen_%d       |     yes     \n",i+1);
+    }
+    else{
+      printf("imagen_%d       |     no     \n",i+1);
+    }
+  }
+}
 
 int main(int argc, char** argv)
 {
-  bmpInfoHeader info;
-  unsigned char* img;
-  img=LoadBMP("Imágenes/imagen_1.bmp", &info);
-  DisplayInfo(&info);
-  TextDisplay(&info, img);
-
   int cantImg=0;//• -c: cantidad de imágenes
   int umbralB=0;//• -u: UMBRAL para Binarizar la imagen.
   int umbralC=0;//• -n: UMBRAL para Clasificación
@@ -131,5 +172,36 @@ int main(int argc, char** argv)
       }
     } 
    printf("cantImg=%d , umbralB=%d , umbralC=%d , bandera=%s\n", cantImg, umbralB, umbralC, bandera);
+   pipeline(cantImg,umbralB,umbralC,bandera);
   return 0;
 }
+
+void escribir(){
+  printf("fin de pipeline\n");
+}
+void pipeline(int c, int umbralB, int umbralC,int b){
+  bmpInfoHeader info;
+  unsigned char* img;
+  unsigned char* grises;
+  int* binarizado;
+  int* clasificaciones=(int*)malloc(sizeof(int)*c);
+  char file[128] = "Imágenes/imagen_";
+     
+  int cont=1;//contador de imagenes
+  while(cont<=c){
+    sprintf(file,"Imágenes/imagen_%d.bmp",cont);
+   // strcat(file, ".bmp");
+    img=LoadBMP(file, &info);//llenamos info y retornamos imagen
+    DisplayInfo(&info);
+    grises=ConversionEscalaGrises(&info, img);
+    binarizado=Binarizar(&info,grises,umbralB);
+    clasificaciones[cont-1]=clasificar(&info,binarizado,umbralC);
+    escribir();
+    cont++;
+  }
+  b=1;
+  if(b==1){
+    DisplayClasificacion(clasificaciones,c);
+  }
+}
+

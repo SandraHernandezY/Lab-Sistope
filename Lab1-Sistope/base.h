@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <string.h>
 //Archivo de cabecera
 typedef struct bmpFileHeader
 {
@@ -10,7 +11,7 @@ typedef struct bmpFileHeader
   uint32_t size;        /* Tamaño del archivo */
   uint16_t resv1;       /* Reservado */
   uint16_t resv2;       /* Reservado */
-  uint32_t offset;      /* Offset hasta hasta los datos de imagen */
+  uint32_t offset;      /* Offset distancia en bytes desde que termina la cabecera de información hasta que empiezan los datos */
 } bmpFileHeader;
 
 typedef struct bmpInfoHeader
@@ -30,4 +31,5 @@ typedef struct bmpInfoHeader
 
 unsigned char *LoadBMP(char *filename, bmpInfoHeader *bInfoHeader);
 void DisplayInfo(bmpInfoHeader *info);
-void TextDisplay(bmpInfoHeader *info, unsigned char *img);
+int* Binarizar(bmpInfoHeader *info, unsigned char *img, int umbral);
+unsigned char* ConversionEscalaGrises(bmpInfoHeader *info, unsigned char *img);

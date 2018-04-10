@@ -1,6 +1,6 @@
 
 #include "base.h"
-//PIPELINE
+
 
 int clasificar(bmpInfoHeader *info, int *img, int umbral){
    int i ;
@@ -22,9 +22,9 @@ int clasificar(bmpInfoHeader *info, int *img, int umbral){
     }
 }
 
-int* Binarizar(bmpInfoHeader *info, unsigned char *img, int umbral)
+int* Binarizar(bmpInfoHeader *info, unsigned int *img, int umbral)
 {
-  int x, y;
+  int x;
   int* binarizado =(int*)malloc(sizeof(int)*info->height*info->width);
   for (x=0; x<(info->width*info->height); x++)
   {
@@ -37,21 +37,23 @@ int* Binarizar(bmpInfoHeader *info, unsigned char *img, int umbral)
   }
   return binarizado;
 }
-unsigned char* ConversionEscalaGrises(bmpInfoHeader *info, unsigned char *img)
+unsigned int* ConversionEscalaGrises(bmpInfoHeader *info, unsigned char *img)
 {
   int x, y,i,valor;
   /* Si la componente supera el umbral, el color se marcará como 1. */
-  unsigned char* grises =(unsigned char*)malloc(info->height*info->width);
+  unsigned int* grises =(unsigned int*)malloc(sizeof(unsigned int*)*info->height*info->width);
   int r,g,b;
   i=0;
-  /* Dibujamos la imagen */
+  int cant_colores=(info->bpp/8);
+  printf("cantidad de colores = %d\n", cant_colores);
+  /* Recorremos la imagen */
   for (y=info->height; y>0; y--)
     {
       for (x=0; x<info->width; x++)
     {
-      b=(img[3*(x+y*info->width)]);
-      g=(img[3*(x+y*info->width)+1]);
-      r=(img[3*(x+y*info->width)+2]);
+      b=(img[cant_colores*(x+y*info->width)]);
+      g=(img[cant_colores*(x+y*info->width)+1]);
+      r=(img[cant_colores*(x+y*info->width)+2]);
       valor= r*0.3+ g*0.59 + b*0.11;
       grises[i]=valor;
       //printf("grises[%d]=%d ",i,grises[i]);
@@ -62,11 +64,9 @@ unsigned char* ConversionEscalaGrises(bmpInfoHeader *info, unsigned char *img)
     return grises;
 }
 
-unsigned char* LoadBMP(char *filename, bmpInfoHeader *bInfoHeader)
+unsigned char* LoadBMP(char *filename, bmpInfoHeader *bInfoHeader, bmpFileHeader* header)
 {
-
   FILE *f;
-  bmpFileHeader header;     /* cabecera */
   unsigned char *imgdata;   /* datos de imagen */
   uint16_t type;        /* 2 bytes identificativos */
 
@@ -81,9 +81,8 @@ unsigned char* LoadBMP(char *filename, bmpInfoHeader *bInfoHeader)
       fclose(f);
       return NULL;
     }
-
   /* Leemos la cabecera de fichero completa */
-  fread(&header, sizeof(bmpFileHeader), 1, f);
+  fread(header, sizeof(bmpFileHeader), 1, f);
 
   /* Leemos la cabecera de información completa */
   fread(bInfoHeader, sizeof(bmpInfoHeader), 1, f);
@@ -94,7 +93,7 @@ unsigned char* LoadBMP(char *filename, bmpInfoHeader *bInfoHeader)
 
   /* Nos situamos en el sitio donde empiezan los datos de imagen,
    nos lo indica el offset de la cabecera de fichero*/
-  fseek(f, header.offset, SEEK_SET);
+  fseek(f, header->offset, SEEK_SET);
 
   /* Leemos los datos de imagen, tantos bytes como imgsize */
   fread(imgdata, bInfoHeader->imgsize,1, f);
@@ -131,6 +130,7 @@ void DisplayClasificacion(int*clasificaciones, int c)
     else{
       printf("imagen_%d       |     no     \n",i+1);
     }
+
   }
 }
 
@@ -140,7 +140,6 @@ int main(int argc, char** argv)
   int umbralB=0;//• -u: UMBRAL para Binarizar la imagen.
   int umbralC=0;//• -n: UMBRAL para Clasificación
   char *bandera=NULL;//• -b: bandera que indica si se deben mostrar los resultados por pantalla, es decir, la conclusión obtenida al leer la imagen binarizada.
-  int index;
   int c;
   opterr=0;
   while((c= getopt(argc,argv, "c:u:n:b:")) != -1)
@@ -172,34 +171,88 @@ int main(int argc, char** argv)
       }
     } 
    printf("cantImg=%d , umbralB=%d , umbralC=%d , bandera=%s\n", cantImg, umbralB, umbralC, bandera);
-   pipeline(cantImg,umbralB,umbralC,bandera);
+   pipeline(cantImg,umbralB,umbralC,1);
   return 0;
 }
 
-void escribir(){
-  printf("fin de pipeline\n");
+void escribir(bmpFileHeader* cabecera, bmpInfoHeader* info, int* img, int n){
+  FILE *f;
+  char file[200] = "salida_imagen_";
+  sprintf(file,"salida_imagen_%d.bmp",n);
+  f=fopen(file, "w");
+  uint16_t type = 0x4D42;
+  unsigned char cero=0;
+  unsigned char p= 255;
+
+  /* Escribimos los dos primeros bytes */
+  fwrite(&type, sizeof(uint16_t), 1, f);//Formato BM
+
+  /* Escribimos la cabecera de fichero completa */
+  fwrite(cabecera, sizeof(bmpFileHeader), 1, f);
+
+  /* Escribimos la cabecera de información completa */
+  fwrite(info, sizeof(bmpInfoHeader), 1, f);
+
+  /* Nos situamos en el sitio donde empiezan los datos de imagen,
+   nos lo indica el offset de la cabecera de fichero*/
+  fseek(f, cabecera->offset, SEEK_SET);
+  int i;
+  for(i=0;i<info->width *info->height;i++){
+     if (img[i]==1){
+       if (info->bpp ==24){//tres colores
+          fwrite(&p,sizeof(unsigned char),1,f);
+          fwrite(&p,sizeof(unsigned char),1,f);
+          fwrite(&p,sizeof(unsigned char),1,f);
+
+       }
+       else{//cuatro
+          fwrite(&p,sizeof(unsigned char),1,f);
+          fwrite(&p,sizeof(unsigned char),1,f);
+          fwrite(&p,sizeof(unsigned char),1,f);
+          fwrite(&p,sizeof(unsigned char),1,f);
+       }
+     }
+     else{//  0-------------------------------
+      if (info->bpp ==24){
+          fwrite(&cero,sizeof(unsigned char),1,f);
+          fwrite(&cero,sizeof(unsigned char),1,f);
+          fwrite(&cero,sizeof(unsigned char),1,f);
+
+       }
+       else{
+          fwrite(&cero,sizeof(unsigned char),1,f);
+          fwrite(&cero,sizeof(unsigned char),1,f);
+          fwrite(&cero,sizeof(unsigned char),1,f);
+          fwrite(&p,sizeof(unsigned char),1,f);
+       }
+
+     }
+  }
+  fclose(f);
+  
 }
 void pipeline(int c, int umbralB, int umbralC,int b){
   bmpInfoHeader info;
+  bmpFileHeader header;
   unsigned char* img;
-  unsigned char* grises;
+  unsigned int* grises;
   int* binarizado;
   int* clasificaciones=(int*)malloc(sizeof(int)*c);
-  char file[128] = "Imágenes/imagen_";
+  char file[200] = "Imágenes/imagen_";
      
   int cont=1;//contador de imagenes
   while(cont<=c){
     sprintf(file,"Imágenes/imagen_%d.bmp",cont);
-   // strcat(file, ".bmp");
-    img=LoadBMP(file, &info);//llenamos info y retornamos imagen
+    img=LoadBMP(file, &info,&header);//llenamos info y retornamos imagen
     DisplayInfo(&info);
     grises=ConversionEscalaGrises(&info, img);
+    printf("Fuera de escala de grises\n");
     binarizado=Binarizar(&info,grises,umbralB);
+    printf("Fuera de Binarizar\n");
     clasificaciones[cont-1]=clasificar(&info,binarizado,umbralC);
-    escribir();
+    escribir(&header,&info,binarizado,cont);
     cont++;
   }
-  b=1;
   if(b==1){
     DisplayClasificacion(clasificaciones,c);
   }

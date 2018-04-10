@@ -29,7 +29,8 @@ typedef struct bmpInfoHeader
   uint32_t imxtcolors;      /* Colores importantes. 0 si son todos */
 } bmpInfoHeader;
 
-unsigned char *LoadBMP(char *filename, bmpInfoHeader *bInfoHeader);
+unsigned char *LoadBMP(char *filename, bmpInfoHeader *bInfoHeader, bmpFileHeader* header);
 void DisplayInfo(bmpInfoHeader *info);
-int* Binarizar(bmpInfoHeader *info, unsigned char *img, int umbral);
-unsigned char* ConversionEscalaGrises(bmpInfoHeader *info, unsigned char *img);
+int* Binarizar(bmpInfoHeader *info, unsigned int *img, int umbral);
+void pipeline(int c, int umbralB, int umbralC,int b);
+unsigned int* ConversionEscalaGrises(bmpInfoHeader *info, unsigned char *img);

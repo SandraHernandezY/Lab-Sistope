@@ -34,3 +34,4 @@ void DisplayInfo(bmpInfoHeader *info);
 int* Binarizar(bmpInfoHeader *info, unsigned int *img, int umbral);
 void pipeline(int c, int umbralB, int umbralC,int b);
 unsigned int* ConversionEscalaGrises(bmpInfoHeader *info, unsigned char *img);
+void DisplayClasificacion(int*clasificaciones, int c);

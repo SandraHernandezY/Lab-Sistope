@@ -77,14 +77,14 @@ int clasificar(bmpInfoHeader *info, int *img, int umbral){
    int blanco =0;
       for (i=0;i<(info->height*info->width);i++){
         if (img[i]==0){
-          blanco ++;
-        }
-        else{
           negro ++;
         }
+        else{
+          blanco ++;
+        }
       }
-    int porcentaje = (negro*100)/(negro+blanco);
-    if (porcentaje>=umbral){
+    float porcentaje = ((float)negro/(float)(negro+blanco)) * 100;
+    if (porcentaje>umbral){// o >=??
          return 1;
     }else{
         return 0;

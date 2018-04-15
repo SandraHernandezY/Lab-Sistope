@@ -1,12 +1,12 @@
 
-#include "base.h"
+#include "formatoBMP.h"
 
 int main(int argc, char** argv)
 {
   int cantImg=0;//• -c: cantidad de imágenes
   int umbralB=0;//• -u: UMBRAL para Binarizar la imagen.
-  int umbralC=0;//• -n: UMBRAL para Clasificación
-  char *bandera=NULL;//• -b: bandera que indica si se deben mostrar los resultados por pantalla, es decir, la conclusión obtenida al leer la imagen binarizada.
+  int umbralC=0;//• -n: UMBRAL para Clasificación.
+  int bandera=0;//• -b: bandera que indica si se deben mostrar los resultados por pantalla, es decir, la conclusión obtenida al leer la imagen binarizada.
   int c;
   opterr=0;
   while((c= getopt(argc,argv, "c:u:n:b:")) != -1)
@@ -23,7 +23,7 @@ int main(int argc, char** argv)
           sscanf(optarg, "%d", &umbralC);//Esta variable se establece por getoptapuntar al valor del argumento de la opción, para aquellas opciones que aceptan argumentos.
           break;
         case 'b':
-          bandera= optarg;
+          sscanf(optarg, "%d", &bandera);
           break;
         case '?':
           if(optopt == 'b')
@@ -37,7 +37,7 @@ int main(int argc, char** argv)
           abort();
       }
     } 
-   printf("cantImg=%d , umbralB=%d , umbralC=%d , bandera=%s\n", cantImg, umbralB, umbralC, bandera);
-   pipeline(cantImg,umbralB,umbralC,1);
+   printf("cantImg=%d , umbralB=%d , umbralC=%d , bandera=%d\n", cantImg, umbralB, umbralC, bandera);
+   pipeline(cantImg,umbralB,umbralC,bandera);
   return 0;
 }
